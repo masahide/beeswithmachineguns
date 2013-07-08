@@ -108,6 +108,15 @@ commands:
 
     parser.add_option_group(attack_group)
 
+    run_group = OptionGroup(parser, "run",
+            """Beginning an run requires only that you specify the -C option with the command you wish to target.""")
+
+    run_group.add_option('-C', '--cmd', metavar="CMD", nargs=1,
+                        action='store', dest='cmd', type='string',
+                        help="Command of the target to attack.")
+
+    parser.add_option_group(run_group)
+
     (options, args) = parser.parse_args()
 
     if len(args) <= 0:
@@ -142,6 +151,14 @@ commands:
         )
 
         bees.attack(options.url, options.number, options.concurrent, **additional_options)
+
+    elif command == 'run':
+        if not options.cmd:
+            parser.error('To run an attack you need to specify a command with -C')
+        bees.run(options.cmd)
+
+    elif command == 'setup':
+        bees.setup()
 
     elif command == 'down':
         bees.down()

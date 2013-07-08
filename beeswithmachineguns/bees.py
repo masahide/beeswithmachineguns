@@ -123,10 +123,11 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet):
         min_count=count,
         max_count=count,
         key_name=key_name,
-        security_group_ids=_get_security_group_ids(ec2_connection, [group], subnet),
+        security_group_ids=["sg-7f1e587e"], #_get_security_group_ids(ec2_connection, [group], subnet),
         instance_type=instance_type,
         placement=zone,
-        subnet_id=subnet)
+        subnet_id=subnet
+	)
 
     print 'Waiting for bees to load their machine guns...'
 
@@ -194,6 +195,75 @@ def down():
 
     _delete_server_list()
 
+def _setup(params):
+    """
+    setup target.
+
+    Intended for use with multiprocessing.
+    """
+    print 'Bee %i is joining the swarm.' % params['i']
+
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(
+            params['instance_name'],
+            username=params['username'],
+            key_filename=_get_pem_path(params['key_name']))
+	channel = client.invoke_shell()
+
+        print 'Bee %i is firing her machine gun. Bang bang!' % params['i']
+
+	sudoers_fix  ="sudo grep '!requiretty' /etc/sudoers||sudo cp /etc/sudoers /tmp/&&sudo chmod 666 /tmp/sudoers&&echo 'Defaults:ec2-user !requiretty' >>/tmp/sudoers&&sudo chmod 440 /tmp/sudoers&&sudo mv /tmp/sudoers /etc/\n"
+
+	stdout = ""
+	channel.send(sudoers_fix)
+	while not channel.recv_ready():
+	    time.sleep(2)
+	stdout += channel.recv(1024)
+
+	setup_commands ='''
+sudo yum update  -y -q &&
+sudo yum install -y -q git
+	'''
+        stdin, stdout, stderr = client.exec_command(setup_commands)
+        print 'Bee %i stdout:' % params['i'] + stdout.read() ,
+        print 'Bee %i stderr:' % params['i'] + stderr.read() 
+        client.close()
+
+	return None
+    except socket.error, e:
+        return e
+
+def _run(params):
+    """
+    setup target.
+
+    Intended for use with multiprocessing.
+    """
+    print 'Bee %i is joining the swarm.' % params['i']
+
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(
+            params['instance_name'],
+            username=params['username'],
+            key_filename=_get_pem_path(params['key_name']))
+	channel = client.invoke_shell()
+
+        print 'Bee %i is firing her machine gun. Bang bang!' % params['i']
+
+        stdin, stdout, stderr = client.exec_command(params['command'])
+        print 'Bee %i stdout:' % params['i'] + stdout.read() ,
+        print 'Bee %i stderr:' % params['i'] + stderr.read() 
+        client.close()
+
+	return None
+    except socket.error, e:
+        return e
+
+
 def _attack(params):
     """
     Test the target URL with requests.
@@ -217,7 +287,8 @@ def _attack(params):
             for h in params['headers'].split(';'):
                 options += ' -H "%s"' % h
 
-        stdin, stdout, stderr = client.exec_command('tempfile -s .csv')
+        stdin, stdout, stderr = client.exec_command('mktemp --suffix=.csv')
+        #print 'instance_name:'+ params['instance_name'] + ' username:' + params['username'] + ' key:'+ params['key_name']
         params['csv_filename'] = stdout.read().strip()
         if params['csv_filename']:
             options += ' -e %(csv_filename)s' % params
@@ -233,6 +304,8 @@ def _attack(params):
         params['options'] = options
         benchmark_command = 'ab -r -n %(num_requests)s -c %(concurrent_requests)s -C "sessionid=NotARealSessionID" %(options)s "%(url)s"' % params
         stdin, stdout, stderr = client.exec_command(benchmark_command)
+        #print 'stdout:' + stdout.read()
+        #print 'stderr:' + stderr.read()
 
         response = {}
 
@@ -440,3 +513,95 @@ def attack(url, n, c, **options):
     _print_results(results, params, csv_filename)
 
     print 'The swarm is awaiting new orders.'
+
+
+
+def setup():
+    """
+    setup the instances.
+    """
+    username, key_name, zone, instance_ids = _read_server_list()
+    
+    if not instance_ids:
+        print 'No bees are ready to attack.'
+        return
+
+    print 'Connecting to the hive.'
+
+    ec2_connection = boto.ec2.connect_to_region(_get_region(zone))
+
+    print 'Assembling bees.'
+
+    reservations = ec2_connection.get_all_instances(instance_ids=instance_ids)
+
+    instances = []
+
+    for reservation in reservations:
+        instances.extend(reservation.instances)
+
+
+    params = []
+
+    for i, instance in enumerate(instances):
+        params.append({
+            'i': i,
+            'instance_id': instance.id,
+            'instance_name': instance.public_dns_name,
+            'username': username,
+            'key_name': key_name,
+        })
+
+    print 'Stinging setup.'
+
+
+    # Spin up processes for connecting to EC2 instances
+    pool = Pool(len(params))
+    pool.map(_setup, params)
+
+    print 'Offensive complete.'
+
+def run(command):
+    """
+    run command
+    """
+    username, key_name, zone, instance_ids = _read_server_list()
+
+    
+    if not instance_ids:
+        print 'No bees are ready to attack.'
+        return
+
+    print 'Connecting to the hive.'
+
+    ec2_connection = boto.ec2.connect_to_region(_get_region(zone))
+
+    print 'Assembling bees.'
+
+    reservations = ec2_connection.get_all_instances(instance_ids=instance_ids)
+
+    instances = []
+
+    for reservation in reservations:
+        instances.extend(reservation.instances)
+
+    params = []
+
+    for i, instance in enumerate(instances):
+        params.append({
+            'i': i,
+            'instance_id': instance.id,
+            'instance_name': instance.public_dns_name,
+            'command': command,
+            'username': username,
+            'key_name': key_name,
+        })
+
+    print 'Stinging run command.'
+
+    # Spin up processes for connecting to EC2 instances
+    pool = Pool(len(params))
+    pool.map(_run, params)
+
+    print 'Offensive complete.'
+
+
