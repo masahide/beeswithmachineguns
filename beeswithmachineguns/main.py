@@ -63,17 +63,17 @@ commands:
                         action='store', dest='group', type='string', default='default',
                         help="The security group(s) to run the instances under (default: default).")
     up_group.add_option('-z', '--zone',  metavar="ZONE",  nargs=1,
-                        action='store', dest='zone', type='string', default='us-east-1d',
-                        help="The availability zone to start the instances in (default: us-east-1d).")
+                        action='store', dest='zone', type='string', default='ap-northeast-1a',
+                        help="The availability zone to start the instances in (default: ap-northeast-1a).")
     up_group.add_option('-i', '--instance',  metavar="INSTANCE",  nargs=1,
-                        action='store', dest='instance', type='string', default='ami-ff17fb96',
-                        help="The instance-id to use for each server from (default: ami-ff17fb96).")
+                        action='store', dest='instance', type='string', default='ami-2db23d2c',
+                        help="The instance-id to use for each server from (default: ami-2db23d2c).")
     up_group.add_option('-t', '--type',  metavar="TYPE",  nargs=1,
                         action='store', dest='type', type='string', default='t1.micro',
                         help="The instance-type to use for each server (default: t1.micro).")
     up_group.add_option('-l', '--login',  metavar="LOGIN",  nargs=1,
-                        action='store', dest='login', type='string', default='newsapps',
-                        help="The ssh username name to use to connect to the new servers (default: newsapps).")
+                        action='store', dest='login', type='string', default='ec2-user',
+                        help="The ssh username name to use to connect to the new servers (default: ec2-user).")
     up_group.add_option('-v', '--subnet',  metavar="SUBNET",  nargs=1,
                         action='store', dest='subnet', type='string', default=None,
                         help="The vpc subnet id in which the instances should be launched. (default: None).")
