@@ -74,7 +74,7 @@ def _get_pem_path(key):
 
 def _get_region(zone):
     return zone[:-1] # chop off the "d" in the "us-east-1d" to get the "Region"
-	
+        
 def _get_security_group_ids(connection, security_group_names, subnet):
     ids = []
     # Since we cannot get security groups in a vpc by name, we get all security groups and parse them by name later
@@ -126,7 +126,7 @@ def up(count, group, zone, image_id, instance_type, username, key_name, subnet):
         instance_type=instance_type,
         placement=zone,
         subnet_id=subnet
-	)
+        )
 
     print 'Waiting for bees to load their machine guns...'
 
@@ -209,28 +209,37 @@ def _setup(params):
             params['instance_name'],
             username=params['username'],
             key_filename=_get_pem_path(params['key_name']))
-	channel = client.invoke_shell()
+        channel = client.invoke_shell()
 
         print 'Bee %i is firing her machine gun. Bang bang!' % params['i']
 
-	sudoers_fix  ="sudo grep '!requiretty' /etc/sudoers||sudo cp /etc/sudoers /tmp/&&sudo chmod 666 /tmp/sudoers&&echo 'Defaults:ec2-user !requiretty' >>/tmp/sudoers&&sudo chmod 440 /tmp/sudoers&&sudo mv /tmp/sudoers /etc/\n"
+        while not channel.recv_ready():
+            time.sleep(2)
+            
+        sudoers_fix  ="sudo grep '!requiretty' /etc/sudoers||sudo cp /etc/sudoers /tmp/&&sudo chmod 666 /tmp/sudoers&&echo 'Defaults:ec2-user !requiretty' >>/tmp/sudoers&&sudo chmod 440 /tmp/sudoers&&sudo mv /tmp/sudoers /etc/\n"
 
-	stdout = ""
-	channel.send(sudoers_fix)
-	while not channel.recv_ready():
-	    time.sleep(2)
-	stdout += channel.recv(1024)
+        stdout = ""
+        while not stdout.endswith('$ '):
+            stdout +=  channel.recv(9999)
+            time.sleep(1)
 
-	setup_commands ='''
-sudo yum update  -y -q &&
+        stdout = ""
+        channel.send(sudoers_fix)
+        while not stdout.endswith('$ '):
+            stdout +=  channel.recv(9999)
+            time.sleep(1)
+
+        setup_commands ='''
+sudo yum update -y -q &&
+sleep 1 &&
 sudo yum install -y -q git httpd-tools
-	'''
+        '''
         stdin, stdout, stderr = client.exec_command(setup_commands)
         print 'Bee %i stdout:' % params['i'] + stdout.read() ,
         print 'Bee %i stderr:' % params['i'] + stderr.read() 
         client.close()
 
-	return None
+        return None
     except socket.error, e:
         return e
 
@@ -249,7 +258,7 @@ def _run(params):
             params['instance_name'],
             username=params['username'],
             key_filename=_get_pem_path(params['key_name']))
-	channel = client.invoke_shell()
+        channel = client.invoke_shell()
 
         print 'Bee %i is firing her machine gun. Bang bang!' % params['i']
 
@@ -258,7 +267,7 @@ def _run(params):
         print 'Bee %i stderr:' % params['i'] + stderr.read() 
         client.close()
 
-	return None
+        return None
     except socket.error, e:
         return e
 
