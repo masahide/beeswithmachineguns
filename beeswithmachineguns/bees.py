@@ -223,7 +223,7 @@ def _setup(params):
 
 	setup_commands ='''
 sudo yum update  -y -q &&
-sudo yum install -y -q git
+sudo yum install -y -q git httpd-tools
 	'''
         stdin, stdout, stderr = client.exec_command(setup_commands)
         print 'Bee %i stdout:' % params['i'] + stdout.read() ,
