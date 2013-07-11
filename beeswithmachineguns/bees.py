@@ -263,8 +263,9 @@ def _run(params):
         print 'Bee %i is firing her machine gun. Bang bang!' % params['i']
 
         stdin, stdout, stderr = client.exec_command(params['command'])
-        print 'Bee %i stdout:' % params['i'] + stdout.read() ,
-        print 'Bee %i stderr:' % params['i'] + stderr.read() 
+        #print 'Bee %i stdout:' % params['i'] + stdout.read() ,
+        #print 'Bee %i stderr:' % params['i'] + stderr.read() 
+        print stdout.read() ,
         client.close()
 
         return None
