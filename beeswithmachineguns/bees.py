@@ -262,7 +262,10 @@ def _run(params):
 
         print 'Bee %i is firing her machine gun. Bang bang!' % params['i']
 
-        stdin, stdout, stderr = client.exec_command(params['command'])
+	if params['balancing']:
+		stdin, stdout, stderr = client.exec_command(params['command']+' '+params['i'])
+	else:
+		stdin, stdout, stderr = client.exec_command(params['command'])
         #print 'Bee %i stdout:' % params['i'] + stdout.read() ,
         #print 'Bee %i stderr:' % params['i'] + stderr.read() 
         print stdout.read() ,
@@ -569,7 +572,7 @@ def setup():
 
     print 'Offensive complete.'
 
-def run(command):
+def run(command, balancing):
     """
     run command
     """
@@ -601,6 +604,7 @@ def run(command):
             'instance_id': instance.id,
             'instance_name': instance.public_dns_name,
             'command': command,
+            'balancing': balancing,
             'username': username,
             'key_name': key_name,
         })

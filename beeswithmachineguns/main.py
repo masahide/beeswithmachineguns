@@ -114,6 +114,9 @@ commands:
     run_group.add_option('-C', '--cmd', metavar="CMD", nargs=1,
                         action='store', dest='cmd', type='string',
                         help="Command of the target to attack.")
+    run_group.add_option("-b", "--balancing",
+                  	action="store_true", dest="balancing", default=False,
+                  	help="balancing")
 
     parser.add_option_group(run_group)
 
@@ -155,7 +158,7 @@ commands:
     elif command == 'run':
         if not options.cmd:
             parser.error('To run an attack you need to specify a command with -C')
-        bees.run(options.cmd)
+        bees.run(options.cmd, options.balancing)
 
     elif command == 'setup':
         bees.setup()
